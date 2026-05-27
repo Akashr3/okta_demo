@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Dashboard — Okta Auth Demo</title>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #f0f2f5;
+            min-height: 100vh;
+            padding: 32px 16px;
+        }
+
+        .container { max-width: 860px; margin: 0 auto; }
+
+        /* Header */
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 28px;
+        }
+
+        .header h1 { font-size: 22px; color: #1a1a2e; }
+
+        .btn-logout {
+            padding: 8px 18px;
+            background: #fff;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            cursor: pointer;
+            text-decoration: none;
+            color: #333;
+            transition: background 0.2s;
+        }
+
+        .btn-logout:hover { background: #f5f5f5; }
+
+        /* Cards */
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 24px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+        }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 18px;
+        }
+
+        .card-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1a1a2e;
+        }
+
+        .card-badge {
+            font-size: 11px;
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-weight: 500;
+        }
+
+        .badge-green { background: #e6f9f0; color: #00875a; }
+        .badge-blue  { background: #e8f4fd; color: #007dc1; }
+        .badge-purple{ background: #f3eeff; color: #6b46c1; }
+
+        /* Profile row */
+        .profile-row {
+            display: flex;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .avatar {
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background: #007dc1;
+            color: white;
+            font-size: 22px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .profile-info p {
+            font-size: 13px;
+            color: #666;
+            margin-top: 4px;
+        }
+
+        .profile-info h2 { font-size: 18px; color: #1a1a2e; }
+
+        /* Claims table */
+        .claims-table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 13px;
+        }
+
+        .claims-table th {
+            text-align: left;
+            padding: 8px 12px;
+            background: #f8f9ff;
+            color: #555;
+            font-weight: 600;
+            border-bottom: 1px solid #eee;
+        }
+
+        .claims-table td {
+            padding: 8px 12px;
+            border-bottom: 1px solid #f0f0f0;
+            color: #333;
+            word-break: break-all;
+        }
+
+        .claims-table tr:last-child td { border-bottom: none; }
+
+        .claim-key { color: #007dc1; font-family: monospace; }
+
+        /* Token box */
+        .token-box {
+            background: #1a1a2e;
+            color: #00d4aa;
+            padding: 14px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 11px;
+            word-break: break-all;
+            line-height: 1.6;
+            max-height: 80px;
+            overflow: hidden;
+            position: relative;
+            cursor: pointer;
+            transition: max-height 0.3s ease;
+        }
+
+        .token-box.expanded { max-height: 300px; }
+
+        .token-hint {
+            font-size: 11px;
+            color: #999;
+            margin-top: 6px;
+        }
+
+        /* Explanation box */
+        .explain-box {
+            background: #fffbf0;
+            border-left: 3px solid #f59e0b;
+            padding: 12px 16px;
+            border-radius: 0 6px 6px 0;
+            font-size: 13px;
+            color: #555;
+            margin-top: 16px;
+            line-height: 1.6;
+        }
+
+        /* Toggle raw JSON */
+        .toggle-btn {
+            font-size: 12px;
+            color: #007dc1;
+            cursor: pointer;
+            background: none;
+            border: none;
+            padding: 0;
+            margin-top: 12px;
+            text-decoration: underline;
+        }
+
+        .raw-json {
+            display: none;
+            margin-top: 12px;
+            background: #f8f9ff;
+            padding: 14px;
+            border-radius: 8px;
+            font-family: monospace;
+            font-size: 12px;
+            white-space: pre-wrap;
+            color: #333;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <!-- Header -->
+    <div class="header">
+        <h1>🔐 Auth Dashboard</h1>
+        <a href="/logout" class="btn-logout">Logout</a>
+    </div>
+
+    <!-- User Profile Card -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Identity</span>
+            <span class="card-badge badge-green">✅ Authenticated</span>
+        </div>
+        <div class="profile-row">
+            <div class="avatar">
+                {{ user.get('name', 'U')[0].upper() }}
+            </div>
+            <div class="profile-info">
+                <h2>{{ user.get('name', 'Unknown') }}</h2>
+                <p>📧 {{ user.get('email', 'No email') }}</p>
+                <p>🆔 {{ user.get('sub', '') }}</p>
+            </div>
+        </div>
+
+        <div class="explain-box">
+            <strong>What just happened?</strong> You authenticated via
+            <strong>Authorization Code Flow + PKCE</strong>. Okta verified your identity
+            and issued an <strong>ID Token</strong> (who you are) and an
+            <strong>Access Token</strong> (what you can do). Your session is stored in
+            an <strong>encrypted HttpOnly cookie</strong> — JavaScript cannot access it,
+            protecting against XSS attacks.
+        </div>
+    </div>
+
+    <!-- ID Token Claims Card -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">ID Token Claims</span>
+            <span class="card-badge badge-blue">OIDC</span>
+        </div>
+        <p style="font-size:13px; color:#666; margin-bottom:14px;">
+            The ID Token proves <strong>who you are</strong>. It's a JWT signed by Okta.
+            These are its decoded claims:
+        </p>
+
+        {% if id_token_claims %}
+        <table class="claims-table">
+            <tr><th>Claim</th><th>Value</th><th>Meaning</th></tr>
+            {% for key, value in id_token_claims.items() %}
+            <tr>
+                <td class="claim-key">{{ key }}</td>
+                <td>{{ value }}</td>
+<td style="color:#999; font-size:12px;">
+                    {% if key == 'sub' %}Unique user ID
+                    {% elif key == 'email' %}User's email
+                    {% elif key == 'name' %}Display name
+                    {% elif key == 'iss' %}Token issuer (Okta)
+                    {% elif key == 'aud' %}Intended audience (your app)
+                    {% elif key == 'exp' %}Expiry timestamp
+                    {% elif key == 'iat' %}Issued at timestamp
+                    {% elif key == 'nonce' %}CSRF replay protection
+                    {% else %}—
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p style="color:#999; font-size:13px;">ID token not available in session.</p>
+        {% endif %}
+
+        {% if id_token %}
+        <p style="font-size:12px; color:#999; margin-top:14px;">Raw token (click to expand):</p>
+        <div class="token-box" onclick="this.classList.toggle('expanded')">{{ id_token }}</div>
+        <p class="token-hint">💡 Paste this at <a href="https://jwt.io" target="_blank">jwt.io</a> to verify the signature</p>
+        {% endif %}
+    </div>
+
+    <!-- Access Token Claims Card -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Access Token Claims</span>
+            <span class="card-badge badge-purple">OAuth2</span>
+        </div>
+        <p style="font-size:13px; color:#666; margin-bottom:14px;">
+            The Access Token proves <strong>what you can do</strong>.
+            It's used to call APIs on your behalf:
+        </p>
+
+        {% if access_token_claims %}
+        <table class="claims-table">
+            <tr><th>Claim</th><th>Value</th><th>Meaning</th></tr>
+            {% for key, value in access_token_claims.items() %}
+            <tr>
+                <td class="claim-key">{{ key }}</td>
+                <td>{{ value }}</td>
+                <td style="color:#999; font-size:12px;">
+                    {% if key == 'sub' %}User this token belongs to
+                    {% elif key == 'scope' %}Permissions granted
+                    {% elif key == 'exp' %}Expiry timestamp
+                    {% elif key == 'iat' %}Issued at timestamp
+                    {% elif key == 'iss' %}Token issuer (Okta)
+                    {% elif key == 'aud' %}Target API/resource
+                    {% elif key == 'client_id' %}App that requested this token
+                    {% else %}—
+                    {% endif %}
+                </td>
+            </tr>
+            {% endfor %}
+        </table>
+        {% else %}
+        <p style="color:#999; font-size:13px;">Access token not available in session.</p>
+        {% endif %}
+
+        {% if access_token %}
+        <p style="font-size:12px; color:#999; margin-top:14px;">Raw token (click to expand):</p>
+        <div class="token-box" onclick="this.classList.toggle('expanded')">{{ access_token }}</div>
+        <p class="token-hint">💡 This is what gets sent in the <code>Authorization: Bearer &lt;token&gt;</code> header</p>
+        {% endif %}
+    </div>
+
+    <!-- Raw Profile JSON Card -->
+    <div class="card">
+        <div class="card-header">
+            <span class="card-title">Full Session Data</span>
+            <span class="card-badge badge-green">Raw JSON</span>
+        </div>
+        <p style="font-size:13px; color:#666;">
+            Everything Okta returned about this user's session:
+        </p>
+        <button class="toggle-btn" onclick="
+            var el = document.getElementById('raw');
+            el.style.display = el.style.display === 'block' ? 'none' : 'block';
+        ">Show / Hide raw JSON</button>
+        <pre class="raw-json" id="raw">{{ user_json }}</pre>
+    </div>
+
+</div>
+</body>
+</html>
